@@ -25,7 +25,12 @@ app.use(
 )
 
 app.use(express.json())
-
+app.get("/", (request, response) => {
+  response.json({
+    message: "Community Casino backend is online",
+    healthCheck: "/api/health"
+  })
+})
 app.get("/api/health", (request, response) => {
   response.json({
     status: "ok",
