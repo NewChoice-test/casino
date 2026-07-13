@@ -1,0 +1,16 @@
+{
+  "name": "community-casino-backend",
+  "version": "1.0.0",
+  "description": "Backend for the Community Casino virtual event app",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^5.0.0"
+  }
+}
