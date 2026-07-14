@@ -9,7 +9,8 @@ import {
   getAdminSettings,
   updateAdminSettings,
   updatePlayerBalance,
-  updatePlayerBan
+  updatePlayerBan,
+  updatePlayerUsername
 } from "../services/api"
 
 import {
@@ -19,6 +20,7 @@ import {
 export default function Admin() {
   const [players, setPlayers] = useState([])
   const [amounts, setAmounts] = useState({})
+  const [usernames, setUsernames] = useState({})
 
   const [
     deleteConfirmationId,
@@ -32,6 +34,7 @@ export default function Admin() {
       slots: true
     },
 
+    startingBalance: 1000,
     minimumBet: 10,
     maximumBet: 250
   })
@@ -74,6 +77,17 @@ export default function Admin() {
         if (!cancelled) {
           setPlayers(playersData.players)
           setSettings(settingsData.settings)
+
+          const initialUsernames = {}
+
+          for (
+            const player of playersData.players
+          ) {
+            initialUsernames[player.id] =
+              player.username
+          }
+
+          setUsernames(initialUsernames)
         }
       } catch (error) {
         if (!cancelled) {
@@ -102,6 +116,15 @@ export default function Admin() {
       )
 
       setPlayers(data.players)
+
+      const refreshedUsernames = {}
+
+      for (const player of data.players) {
+        refreshedUsernames[player.id] =
+          player.username
+      }
+
+      setUsernames(refreshedUsernames)
     } catch (error) {
       setMessage(error.message)
     }
@@ -146,6 +169,45 @@ export default function Admin() {
     return Number(
       amounts[playerId] ?? 0
     )
+  }
+
+  async function changeUsername(player) {
+    const password = getAdminPassword()
+
+    const username = String(
+      usernames[player.id] ?? ""
+    ).trim()
+
+    try {
+      const data = await updatePlayerUsername({
+        password,
+        playerId: player.id,
+        username
+      })
+
+      setPlayers((currentPlayers) =>
+        currentPlayers.map((currentPlayer) =>
+          currentPlayer.id === player.id
+            ? {
+                ...currentPlayer,
+                username:
+                  data.player.username
+              }
+            : currentPlayer
+        )
+      )
+
+      setUsernames((current) => ({
+        ...current,
+        [player.id]: data.player.username
+      }))
+
+      setMessage(
+        `Username changed to ${data.player.username}.`
+      )
+    } catch (error) {
+      setMessage(error.message)
+    }
   }
 
   async function changeBalance(
@@ -232,24 +294,9 @@ export default function Admin() {
         )
       )
 
-      setAmounts((currentAmounts) => {
-        const updatedAmounts = {
-          ...currentAmounts
-        }
-
-        delete updatedAmounts[player.id]
-
-        return updatedAmounts
-      })
-
       setDeleteConfirmationId(null)
       setMessage(data.message)
     } catch (error) {
-      console.error(
-        "Delete player failed:",
-        error
-      )
-
       setMessage(error.message)
     }
   }
@@ -275,7 +322,7 @@ export default function Admin() {
           <h2>⚙️ Admin dashboard</h2>
 
           <p>
-            Control game availability and manage player
+            Control casino settings and manage player
             accounts.
           </p>
         </div>
@@ -299,14 +346,14 @@ export default function Admin() {
         <div className="admin-game-control-heading">
           <div>
             <span className="eyebrow">
-              LIVE GAME CONTROL
+              CASINO SETTINGS
             </span>
 
-            <h3>Open or close games</h3>
+            <h3>Game and balance controls</h3>
 
             <p>
-              Closed games remain visible, but players
-              will see a temporary closure page.
+              The starting balance applies only to newly
+              registered accounts.
             </p>
           </div>
 
@@ -318,7 +365,7 @@ export default function Admin() {
           >
             {isSavingSettings
               ? "Saving..."
-              : "Save game settings"}
+              : "Save casino settings"}
           </button>
         </div>
 
@@ -377,6 +424,26 @@ export default function Admin() {
 
         <div className="admin-bet-settings">
           <label>
+            <span>Starting balance</span>
+
+            <input
+              className="bet-input"
+              type="number"
+              min="0"
+              value={settings.startingBalance}
+              onChange={(event) =>
+                setSettings((current) => ({
+                  ...current,
+
+                  startingBalance: Number(
+                    event.target.value
+                  )
+                }))
+              }
+            />
+          </label>
+
+          <label>
             <span>Minimum bet</span>
 
             <input
@@ -429,12 +496,6 @@ export default function Admin() {
       </section>
 
       <section className="admin-player-list">
-        {players.length === 0 && (
-          <div className="admin-panel">
-            No players have registered yet.
-          </div>
-        )}
-
         {players.map((player) => (
           <article
             className={
@@ -475,6 +536,35 @@ export default function Admin() {
                     : "Active"}
                 </strong>
               </div>
+            </div>
+
+            <div className="admin-username-controls">
+              <input
+                className="bet-input"
+                type="text"
+                minLength="3"
+                maxLength="20"
+                value={
+                  usernames[player.id] ?? ""
+                }
+                onChange={(event) =>
+                  setUsernames((current) => ({
+                    ...current,
+
+                    [player.id]:
+                      event.target.value
+                  }))
+                }
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  changeUsername(player)
+                }
+              >
+                Change username
+              </button>
             </div>
 
             <div className="admin-player-controls">

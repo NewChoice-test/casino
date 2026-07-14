@@ -10,6 +10,7 @@ router.get("/", (request, response) => {
       blackjack_enabled,
       roulette_enabled,
       slots_enabled,
+      starting_balance,
       minimum_bet,
       maximum_bet,
       updated_at
@@ -33,9 +34,17 @@ router.get("/", (request, response) => {
         )
       },
 
-      minimumBet: settings.minimum_bet,
-      maximumBet: settings.maximum_bet,
-      updatedAt: settings.updated_at
+      startingBalance:
+        settings.starting_balance,
+
+      minimumBet:
+        settings.minimum_bet,
+
+      maximumBet:
+        settings.maximum_bet,
+
+      updatedAt:
+        settings.updated_at
     }
   })
 })

@@ -200,3 +200,23 @@ export function deleteAdminPlayer({
     }
   )
 }
+export function updatePlayerUsername({
+  password,
+  playerId,
+  username
+}) {
+  return apiRequest(
+    `/api/admin/players/${playerId}/username`,
+    {
+      method: "PATCH",
+
+      headers: {
+        "X-Admin-Password": password
+      },
+
+      body: JSON.stringify({
+        username
+      })
+    }
+  )
+}

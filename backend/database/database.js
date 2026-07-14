@@ -52,6 +52,7 @@ database.exec(`
     blackjack_enabled INTEGER NOT NULL DEFAULT 1,
     roulette_enabled INTEGER NOT NULL DEFAULT 1,
     slots_enabled INTEGER NOT NULL DEFAULT 1,
+    starting_balance INTEGER NOT NULL DEFAULT 1000,
     minimum_bet INTEGER NOT NULL DEFAULT 10,
     maximum_bet INTEGER NOT NULL DEFAULT 250,
     updated_at TEXT NOT NULL
@@ -79,17 +80,36 @@ if (!hasBannedColumn) {
   `)
 }
 
+const settingsColumns = database
+  .prepare("PRAGMA table_info(casino_settings)")
+  .all()
+
+const hasStartingBalanceColumn =
+  settingsColumns.some(
+    (column) =>
+      column.name === "starting_balance"
+  )
+
+if (!hasStartingBalanceColumn) {
+  database.exec(`
+    ALTER TABLE casino_settings
+    ADD COLUMN starting_balance
+    INTEGER NOT NULL DEFAULT 1000;
+  `)
+}
+
 database.prepare(`
   INSERT OR IGNORE INTO casino_settings (
     id,
     blackjack_enabled,
     roulette_enabled,
     slots_enabled,
+    starting_balance,
     minimum_bet,
     maximum_bet,
     updated_at
   )
-  VALUES (1, 1, 1, 1, 10, 250, ?)
+  VALUES (1, 1, 1, 1, 1000, 10, 250, ?)
 `).run(new Date().toISOString())
 
 export default database

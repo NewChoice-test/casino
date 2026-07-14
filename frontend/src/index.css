@@ -2325,3 +2325,35 @@ a {
     grid-column: auto;
   }
 }
+.admin-username-controls {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1fr)
+    auto;
+  gap: 10px;
+}
+
+.admin-username-controls button {
+  padding: 11px 14px;
+  border: 1px solid rgba(244, 207, 88, 0.25);
+  border-radius: 10px;
+  color: #f4d56e;
+  background: rgba(244, 207, 88, 0.06);
+  cursor: pointer;
+}
+
+.admin-bet-settings {
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 750px) {
+  .admin-username-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-bet-settings {
+    grid-template-columns: 1fr;
+  }
+}

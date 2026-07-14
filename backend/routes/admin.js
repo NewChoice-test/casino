@@ -10,6 +10,22 @@ const router = express.Router()
 
 router.use(requireAdmin)
 
+function validateUsername(username) {
+  if (username.length < 3) {
+    return "Username must contain at least 3 characters."
+  }
+
+  if (username.length > 20) {
+    return "Username cannot exceed 20 characters."
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    return "Username may only contain letters, numbers, underscores, and hyphens."
+  }
+
+  return null
+}
+
 router.get("/verify", (request, response) => {
   response.json({
     authenticated: true
@@ -22,6 +38,7 @@ router.get("/settings", (request, response) => {
       blackjack_enabled,
       roulette_enabled,
       slots_enabled,
+      starting_balance,
       minimum_bet,
       maximum_bet,
       updated_at
@@ -45,9 +62,17 @@ router.get("/settings", (request, response) => {
         )
       },
 
-      minimumBet: settings.minimum_bet,
-      maximumBet: settings.maximum_bet,
-      updatedAt: settings.updated_at
+      startingBalance:
+        settings.starting_balance,
+
+      minimumBet:
+        settings.minimum_bet,
+
+      maximumBet:
+        settings.maximum_bet,
+
+      updatedAt:
+        settings.updated_at
     }
   })
 })
@@ -62,6 +87,10 @@ router.patch("/settings", (request, response) => {
   const slots =
     request.body?.games?.slots === true
 
+  const startingBalance = Number(
+    request.body.startingBalance
+  )
+
   const minimumBet = Number(
     request.body.minimumBet
   )
@@ -69,6 +98,16 @@ router.patch("/settings", (request, response) => {
   const maximumBet = Number(
     request.body.maximumBet
   )
+
+  if (
+    !Number.isSafeInteger(startingBalance) ||
+    startingBalance < 0
+  ) {
+    return response.status(400).json({
+      error:
+        "Starting balance must be zero or a positive whole number."
+    })
+  }
 
   if (
     !Number.isSafeInteger(minimumBet) ||
@@ -98,6 +137,7 @@ router.patch("/settings", (request, response) => {
       blackjack_enabled = ?,
       roulette_enabled = ?,
       slots_enabled = ?,
+      starting_balance = ?,
       minimum_bet = ?,
       maximum_bet = ?,
       updated_at = ?
@@ -106,6 +146,7 @@ router.patch("/settings", (request, response) => {
     blackjack ? 1 : 0,
     roulette ? 1 : 0,
     slots ? 1 : 0,
+    startingBalance,
     minimumBet,
     maximumBet,
     updatedAt
@@ -119,6 +160,7 @@ router.patch("/settings", (request, response) => {
         slots
       },
 
+      startingBalance,
       minimumBet,
       maximumBet,
       updatedAt
@@ -150,6 +192,77 @@ router.get("/players", (request, response) => {
     }))
   })
 })
+
+router.patch(
+  "/players/:playerId/username",
+  (request, response) => {
+    const playerId = request.params.playerId
+
+    const username = String(
+      request.body.username ?? ""
+    ).trim()
+
+    const usernameError =
+      validateUsername(username)
+
+    if (usernameError) {
+      return response.status(400).json({
+        error: usernameError
+      })
+    }
+
+    const player = database.prepare(`
+      SELECT id
+      FROM players
+      WHERE id = ?
+    `).get(playerId)
+
+    if (!player) {
+      return response.status(404).json({
+        error: "Player not found."
+      })
+    }
+
+    const existingPlayer = database.prepare(`
+      SELECT id
+      FROM players
+      WHERE username = ?
+        AND id != ?
+    `).get(
+      username,
+      playerId
+    )
+
+    if (existingPlayer) {
+      return response.status(409).json({
+        error:
+          "That username is already being used."
+      })
+    }
+
+    const updatedAt = new Date().toISOString()
+
+    database.prepare(`
+      UPDATE players
+      SET
+        username = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      username,
+      updatedAt,
+      playerId
+    )
+
+    response.json({
+      player: {
+        id: playerId,
+        username,
+        updatedAt
+      }
+    })
+  }
+)
 
 router.patch(
   "/players/:playerId/balance",
@@ -218,7 +331,8 @@ router.patch(
 
     if (!Number.isSafeInteger(newBalance)) {
       return response.status(400).json({
-        error: "The resulting balance is too large."
+        error:
+          "The resulting balance is too large."
       })
     }
 
@@ -301,6 +415,7 @@ router.patch(
     })
   }
 )
+
 router.delete(
   "/players/:playerId",
   (request, response) => {
@@ -327,13 +442,9 @@ router.delete(
 
     response.json({
       message:
-        `${player.username} and all associated account data were permanently deleted.`,
-
-      deletedPlayer: {
-        id: player.id,
-        username: player.username
-      }
+        `${player.username} and all their data were permanently deleted.`
     })
   }
 )
+
 export default router

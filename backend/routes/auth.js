@@ -105,15 +105,15 @@ router.post(
       const playerId = randomUUID()
       const now = new Date().toISOString()
 
-      const startingBalance = Number(
-        process.env.STARTING_BALANCE
-      )
+      const casinoSettings =
+  database.prepare(`
+    SELECT starting_balance
+    FROM casino_settings
+    WHERE id = 1
+  `).get()
 
-      const safeStartingBalance =
-        Number.isFinite(startingBalance) &&
-        startingBalance >= 0
-          ? Math.floor(startingBalance)
-          : 1000
+const safeStartingBalance =
+  casinoSettings?.starting_balance ?? 1000
 
       database.prepare(`
         INSERT INTO players (
